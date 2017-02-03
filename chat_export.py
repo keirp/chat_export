@@ -2,7 +2,6 @@ import sys, getopt
 import os
 from datetime import datetime, timezone, timedelta
 import itertools
-from dateutil.parser import parse
 
 help_text = 'chat_export.py [-f <facebook root> -n <facebook name>] [-m] -o <outputfile>'
 
@@ -50,11 +49,12 @@ def main(argv):
 	f.truncate()
 	
 	for m in messages:
-	    f.write(m[0] + ',' + str(m[1]) + '\n')
-		    
+		 f.write(m[0] + ',' + str(m[1]) + '\n')
+			  
 	f.close()
 	
 def gather_imessage():
+	from dateutil.parser import parse
 	if os.path.exists('imessage/contacts.txt'):
 		if os.path.exists('imessage/messages/messages.csv'):
 			os.remove('imessage/messages/messages.csv')
@@ -63,13 +63,13 @@ def gather_imessage():
 		f_list = f.read().splitlines()
 		imessage_data = []
 		for line in f_list:
-		    try:
-		        data = line.split(",")
-		        date = data[1]
-		        name = data[4]
-		        imessage_data.append((name, parse(date)))
-		    except:
-		        pass
+			  try:
+				  data = line.split(",")
+				  date = data[1]
+				  name = data[4]
+				  imessage_data.append((name, parse(date)))
+			  except:
+				  pass
 		return imessage_data
 	else:
 		os.system('php imessage/contacts.php >> imessage/contacts.txt')
@@ -87,32 +87,33 @@ def gather_facebook(path, name):
 from html.parser import HTMLParser
 
 class MessengerParser(HTMLParser):
-    
-    def __init__(self, name):
-        HTMLParser.__init__(self)
-        self.get_thread = False
-        self.curr_thread = None
-        self.skip = False
-        self.messages = []
-        self.name = name
-    
-    def handle_starttag(self, tag, attrs):
-        for attr in attrs:
-            if attr[0] == "class" and attr[1] == "thread":
-                self.get_thread = True
-
-    def handle_data(self, data):
-        if self.get_thread:
-            self.curr_thread = data.replace(self.name, "").replace(",", "").strip()
-            self.get_thread = False
-            self.skip = self.curr_thread.isdigit() or self.curr_thread.count(" ") > 2 or self.curr_thread == ""
-        elif not self.skip:
-            try:
-                # print(data)
-                date = datetime.strptime(' '.join(data.strip().split()[:-1]), "%A, %B %d, %Y at %I:%M%p")
-                self.messages.append((self.curr_thread, date))
-            except:
-                print("Unexpected error:", sys.exc_info()[0])
 	
+	def __init__(self, name):
+		HTMLParser.__init__(self)
+		self.get_thread = False
+		self.curr_thread = None
+		self.skip = False
+		self.messages = []
+		self.name = name
+	
+	def handle_starttag(self, tag, attrs):
+		for attr in attrs:
+			if attr[0] == "class" and attr[1] == "thread":
+				self.get_thread = True
+
+	def handle_data(self, data):
+		if self.get_thread:
+			if data.count(',') > 1 or not self.name in data:
+				self.skip = True
+			else:
+				self.curr_thread = data.replace(self.name, "").replace(",", "").strip()
+				self.get_thread = False
+				self.skip = self.curr_thread.isdigit() or self.curr_thread == ""
+		elif not self.skip:
+			try:
+				date = datetime.strptime(' '.join(data.strip().split()[:-1]), "%A, %B %d, %Y at %I:%M%p")
+				self.messages.append((self.curr_thread, date))
+			except:
+				pass	
 if __name__ == "__main__":
 	main(sys.argv[1: ])
