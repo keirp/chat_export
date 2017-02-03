@@ -46,7 +46,7 @@ def main(argv):
 	if use_imessage:
 		m_data = gather_imessage()
 		messages += m_data
-	f = open(outputfile, 'w')
+	f = open(outputfile, 'w', encoding="utf8")
 	f.truncate()
 	
 	for m in messages:
@@ -77,7 +77,7 @@ def gather_imessage():
 		sys.exit(2)
 		
 def gather_facebook(path, name):
-	facebook_page = open(path + '/html/messages.htm')
+	facebook_page = open(path + '/html/messages.htm', encoding="utf8", errors='ignore')
 
 	parser = MessengerParser(name)
 	parser.feed(facebook_page.read())
@@ -108,10 +108,11 @@ class MessengerParser(HTMLParser):
             self.skip = self.curr_thread.isdigit() or self.curr_thread.count(" ") > 2 or self.curr_thread == ""
         elif not self.skip:
             try:
-                date = datetime.strptime(data.strip(), "%A, %B %d, %Y at %I:%M%p %Z")
+                # print(data)
+                date = datetime.strptime(' '.join(data.strip().split()[:-1]), "%A, %B %d, %Y at %I:%M%p")
                 self.messages.append((self.curr_thread, date))
             except:
-                pass
+                print("Unexpected error:", sys.exc_info()[0])
 	
 if __name__ == "__main__":
 	main(sys.argv[1: ])
